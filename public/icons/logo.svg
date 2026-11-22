@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F766E"/>
+      <stop offset="50%" stop-color="#0D9488"/>
+      <stop offset="100%" stop-color="#042F2E"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background Base with Rounded Corners -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+
+  <!-- Subtle Border Ring -->
+  <rect x="12" y="12" width="488" height="488" rx="100" fill="none" stroke="#2DD4BF" stroke-width="4" stroke-opacity="0.3"/>
+
+  <!-- Chadian Flag Ribbon Accent -->
+  <g transform="translate(196, 76)">
+    <rect x="0" y="0" width="40" height="8" rx="4" fill="#002664" />
+    <rect x="40" y="0" width="40" height="8" rx="4" fill="#FECB00" />
+    <rect x="80" y="0" width="40" height="8" rx="4" fill="#C60C30" />
+  </g>
+
+  <!-- Academic Graduation Cap & Book Illustration -->
+  <g filter="url(#shadow)" transform="translate(0, 10)">
+    <!-- Mortarboard Cap Diamond -->
+    <path d="M 256 120 L 400 188 L 256 256 L 112 188 Z" fill="#FFFFFF"/>
+    <path d="M 256 136 L 380 194 L 256 248 L 132 194 Z" fill="#F0FDFA"/>
+    
+    <!-- Cap Skull Base -->
+    <path d="M 172 216 L 172 270 C 172 312 340 312 340 270 L 340 216 L 256 256 Z" fill="#E2E8F0"/>
+
+    <!-- Tassel -->
+    <circle cx="256" cy="188" r="7" fill="url(#goldGrad)"/>
+    <path d="M 256 188 Q 380 200 392 270" stroke="url(#goldGrad)" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <rect x="384" y="270" width="16" height="32" rx="4" fill="url(#goldGrad)"/>
+  </g>
+
+  <!-- Open Educational Book -->
+  <g transform="translate(146, 290)" filter="url(#shadow)">
+    <!-- Left page -->
+    <path d="M 110 30 C 70 18 20 20 0 26 L 0 94 C 20 88 70 86 110 98 Z" fill="#FFFFFF"/>
+    <!-- Right page -->
+    <path d="M 110 30 C 150 18 200 20 220 26 L 220 94 C 200 88 150 86 110 98 Z" fill="#F1F5F9"/>
+    <!-- Center spine -->
+    <line x1="110" y1="30" x2="110" y2="98" stroke="#0D9488" stroke-width="4"/>
+  </g>
+
+  <!-- Golden Stars of Excellence -->
+  <g fill="url(#goldGrad)" transform="translate(256, 396)">
+    <polygon points="0,-16 5,-5 16,-5 7,2 10,13 0,6 -10,13 -7,2 -16,-5 -5,-5" transform="scale(0.8)"/>
+  </g>
+
+  <!-- Typography: BAC TCHAD 2027 -->
+  <text x="256" y="440" font-family="system-ui, -apple-system, sans-serif" font-size="34" font-weight="900" fill="#FFFFFF" text-anchor="middle" letter-spacing="4">
+    BAC TCHAD
+  </text>
+  <text x="256" y="474" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#2DD4BF" text-anchor="middle" letter-spacing="6">
+    2027
+  </text>
+</svg>

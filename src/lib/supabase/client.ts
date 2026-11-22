@@ -1,0 +1,32 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  process.env.SUPABASE_URL ||
+  'https://wgtmgjmrtdxmbabkyopc.supabase.co';
+
+const supabaseAnonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_PUBLISHABLE_KEY ||
+  'sb_publishable_X_9e2mDYzJrDBv3sluWyeg_RW5nBl4A';
+
+export const isSupabaseConfigured = () => {
+  return Boolean(
+    supabaseUrl &&
+    supabaseUrl !== 'https://mock.supabase.co' &&
+    supabaseAnonKey &&
+    supabaseAnonKey !== 'mock-anon-key'
+  );
+};
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
+});
