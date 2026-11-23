@@ -3,13 +3,13 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Mail, ArrowRight, ChevronLeft, ShieldCheck, AlertCircle, Sparkles, Phone } from 'lucide-react';
+import { Mail, ArrowRight, ChevronLeft, ShieldCheck, AlertCircle } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase/client';
 import { useApp } from '@/context/AppContext';
 
 export default function AuthPage() {
   const router = useRouter();
-  const { setCurrentUser, loginAsSeigneur } = useApp();
+  const { setCurrentUser } = useApp();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,11 +50,6 @@ export default function AuthPage() {
     }
   };
 
-  const handleConnectAsSeigneur = () => {
-    loginAsSeigneur();
-    router.push('/app/chats');
-  };
-
   return (
     <div className="min-h-screen bg-[#0b141a] text-[#e9edef] flex flex-col justify-between p-4 sm:p-6 font-sans">
       <div className="w-full max-w-md mx-auto">
@@ -77,31 +72,6 @@ export default function AuthPage() {
           <p className="text-sm text-[#8696a0] leading-relaxed">
             Connectez-vous pour retrouver vos discussions WhatsApp et vos groupes BAC 2027.
           </p>
-        </div>
-
-        {/* Quick 1-Click Super Admin Access: LE SEIGNEUR */}
-        <div className="mb-6 bg-gradient-to-r from-[#103629] via-[#0b141a] to-[#103629] border border-[#00a884]/40 rounded-3xl p-4 shadow-xl">
-          <div className="flex items-center gap-2 text-[#00a884] font-bold text-xs uppercase mb-1">
-            <ShieldCheck className="w-4 h-4" />
-            <span>Compte Officiel Super Admin</span>
-          </div>
-          <h3 className="text-base font-bold text-white flex items-center gap-1.5">
-            <span>LE SEIGNEUR</span>
-            <ShieldCheck className="w-4 h-4 text-[#00a884]" />
-          </h3>
-          <p className="text-xs text-[#8696a0] flex items-center gap-1 mt-0.5">
-            <Phone className="w-3.5 h-3.5 text-[#00a884]" />
-            <strong className="text-white">+235 91 23 45 68</strong> (Public Certifié)
-          </p>
-
-          <button
-            type="button"
-            onClick={handleConnectAsSeigneur}
-            className="mt-3.5 w-full py-2.5 px-4 bg-[#00a884] hover:bg-[#00c99f] active:scale-95 text-[#111b21] rounded-xl font-bold text-xs shadow-lg transition-all flex items-center justify-center gap-2"
-          >
-            <Sparkles className="w-4 h-4 fill-current" />
-            <span>Connexion Directe — LE SEIGNEUR</span>
-          </button>
         </div>
 
         {error && (
