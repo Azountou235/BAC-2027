@@ -85,6 +85,21 @@ interface AppContextType {
   adminStats: AdminStats;
   adminLogs: AdminLogItem[];
   allProfiles: PublicProfile[];
+  // Chat list management & persistent actions
+  deletedChatIds: string[];
+  deleteChat: (chatId: string) => void;
+  archivedChatIds: string[];
+  toggleArchiveChat: (chatId: string) => void;
+  pinnedChatIds: string[];
+  togglePinChat: (chatId: string) => boolean;
+  mutedChatIds: string[];
+  toggleMuteChat: (chatId: string) => void;
+  // Message deletions & forwarding
+  deletedMessageIdsForMe: string[];
+  deleteMessageForMe: (messageId: string, kind: 'group' | 'private', contextId: string) => void;
+  deleteMessageForAll: (messageId: string, kind: 'group' | 'private', contextId: string) => void;
+  forwardMessage: (message: Message, targetDestinations: { kind: 'group' | 'private'; id: string }[]) => Promise<void>;
+  updateUserProfile: (data: Partial<Profile>) => Promise<{ success: boolean; message?: string }>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -151,6 +166,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isLowNetworkMode, setIsLowNetworkMode] = useState<boolean>(false);
   const [theme, setThemeState] = useState<'dark' | 'light' | 'system'>('dark');
 
+  // Persistent lists for deleted, archived, pinned, and muted chats
+  const [deletedChatIds, setDeletedChatIds] = useState<string[]>([]);
+  const [archivedChatIds, setArchivedChatIds] = useState<string[]>([]);
+  const [pinnedChatIds, setPinnedChatIds] = useState<string[]>(['meta_ai', 'seigneur_self']);
+  const [mutedChatIds, setMutedChatIds] = useState<string[]>([]);
+  const [deletedMessageIdsForMe, setDeletedMessageIdsForMe] = useState<string[]>([]);
+
   const loginAsSeigneur = () => {
     setCurrentUser(LE_SEIGNEUR_PROFILE);
     localStorage.setItem('bac_tchad_user', JSON.stringify(LE_SEIGNEUR_PROFILE));
@@ -182,6 +204,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (savedTheme) {
           setThemeState(savedTheme as any);
         }
+
+        // Restore chat preferences & persistent deletions
+        const savedDeleted = localStorage.getItem('bac_tchad_deleted_chats');
+        if (savedDeleted) setDeletedChatIds(JSON.parse(savedDeleted));
+
+        const savedArchived = localStorage.getItem('bac_tchad_archived_chats');
+        if (savedArchived) setArchivedChatIds(JSON.parse(savedArchived));
+
+        const savedPinned = localStorage.getItem('bac_tchad_pinned_chats');
+        if (savedPinned) setPinnedChatIds(JSON.parse(savedPinned));
+
+        const savedMuted = localStorage.getItem('bac_tchad_muted_chats');
+        if (savedMuted) setMutedChatIds(JSON.parse(savedMuted));
+
+        const savedDeletedMsgs = localStorage.getItem('bac_tchad_deleted_msgs_me');
+        if (savedDeletedMsgs) setDeletedMessageIdsForMe(JSON.parse(savedDeletedMsgs));
       } catch (e) {
         console.error('LocalStorage read error:', e);
       }
@@ -549,6 +587,158 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return true;
   };
 
+  // Chat list persistent actions
+  const deleteChat = (chatId: string) => {
+    setDeletedChatIds((prev) => {
+      const updated = Array.from(new Set([...prev, chatId]));
+      localStorage.setItem('bac_tchad_deleted_chats', JSON.stringify(updated));
+      return updated;
+    });
+    setPrivateConversations((prev) => prev.filter((c) => c.id !== chatId));
+  };
+
+  const toggleArchiveChat = (chatId: string) => {
+    setArchivedChatIds((prev) => {
+      const updated = prev.includes(chatId)
+        ? prev.filter((id) => id !== chatId)
+        : [...prev, chatId];
+      localStorage.setItem('bac_tchad_archived_chats', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const togglePinChat = (chatId: string): boolean => {
+    if (pinnedChatIds.includes(chatId)) {
+      const updated = pinnedChatIds.filter((id) => id !== chatId);
+      setPinnedChatIds(updated);
+      localStorage.setItem('bac_tchad_pinned_chats', JSON.stringify(updated));
+      return true;
+    } else {
+      if (pinnedChatIds.length >= 3) {
+        return false; // Max 3
+      }
+      const updated = [...pinnedChatIds, chatId];
+      setPinnedChatIds(updated);
+      localStorage.setItem('bac_tchad_pinned_chats', JSON.stringify(updated));
+      return true;
+    }
+  };
+
+  const toggleMuteChat = (chatId: string) => {
+    setMutedChatIds((prev) => {
+      const updated = prev.includes(chatId)
+        ? prev.filter((id) => id !== chatId)
+        : [...prev, chatId];
+      localStorage.setItem('bac_tchad_muted_chats', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const deleteMessageForMe = (messageId: string, kind: 'group' | 'private', contextId: string) => {
+    setDeletedMessageIdsForMe((prev) => {
+      const updated = Array.from(new Set([...prev, messageId]));
+      localStorage.setItem('bac_tchad_deleted_msgs_me', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const deleteMessageForAll = (messageId: string, kind: 'group' | 'private', contextId: string) => {
+    if (kind === 'group') {
+      setGroupMessages((prev) => {
+        const msgs = prev[contextId] || [];
+        return {
+          ...prev,
+          [contextId]: msgs.map((m) =>
+            m.id === messageId
+              ? { ...m, content: '🚫 Ce message a été supprimé', deleted_for_all: true, is_deleted: true, attachments: [] }
+              : m
+          ),
+        };
+      });
+    } else {
+      setPrivateMessages((prev) => {
+        const msgs = prev[contextId] || [];
+        return {
+          ...prev,
+          [contextId]: msgs.map((m) =>
+            m.id === messageId
+              ? { ...m, content: '🚫 Ce message a été supprimé', deleted_for_all: true, is_deleted: true, attachments: [] }
+              : m
+          ),
+        };
+      });
+    }
+  };
+
+  const forwardMessage = async (
+    message: Message,
+    targetDestinations: { kind: 'group' | 'private'; id: string }[]
+  ) => {
+    for (const dest of targetDestinations) {
+      if (dest.kind === 'group') {
+        await sendGroupMessage(
+          dest.id as Series,
+          message.content,
+          null,
+          message.attachments,
+          message.message_type
+        );
+      } else {
+        await sendPrivateMessage(
+          dest.id,
+          message.content,
+          null,
+          message.attachments,
+          message.message_type
+        );
+      }
+    }
+  };
+
+  const updateUserProfile = async (
+    data: Partial<Profile>
+  ): Promise<{ success: boolean; message?: string }> => {
+    if (!currentUser) return { success: false, message: 'Non connecté.' };
+
+    // 14 days name modification restriction
+    if (data.full_name && data.full_name.trim() !== currentUser.full_name.trim()) {
+      if (currentUser.last_name_change) {
+        const lastChange = new Date(currentUser.last_name_change).getTime();
+        const now = Date.now();
+        const diffDays = (now - lastChange) / (1000 * 60 * 60 * 24);
+        if (diffDays < 14) {
+          const remainingDays = Math.ceil(14 - diffDays);
+          const nextAllowed = new Date(lastChange + 14 * 24 * 60 * 60 * 1000);
+          return {
+            success: false,
+            message: `Vous avez déjà modifié votre nom récemment. Vous pourrez le modifier à nouveau le ${nextAllowed.toLocaleDateString('fr-FR')} (dans ${remainingDays} jours).`,
+          };
+        }
+      }
+      data.last_name_change = new Date().toISOString();
+    }
+
+    const updated: Profile = {
+      ...currentUser,
+      ...data,
+      updated_at: new Date().toISOString(),
+    };
+
+    setCurrentUser(updated);
+    localStorage.setItem('bac_tchad_user', JSON.stringify(updated));
+
+    // Sync with Supabase if online
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        await supabase.from('profiles').update(data).eq('id', currentUser.id);
+      } catch (err) {
+        console.warn('Supabase profile sync warning:', err);
+      }
+    }
+
+    return { success: true };
+  };
+
   const logout = async () => {
     setCurrentUser(null);
     localStorage.removeItem('bac_tchad_user');
@@ -654,6 +844,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         adminStats,
         adminLogs,
         allProfiles,
+        deletedChatIds,
+        deleteChat,
+        archivedChatIds,
+        toggleArchiveChat,
+        pinnedChatIds,
+        togglePinChat,
+        mutedChatIds,
+        toggleMuteChat,
+        deletedMessageIdsForMe,
+        deleteMessageForMe,
+        deleteMessageForAll,
+        forwardMessage,
+        updateUserProfile,
       }}
     >
       {children}

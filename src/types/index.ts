@@ -64,6 +64,7 @@ export interface Profile {
   avatar_url?: string | null;
   is_super_admin: boolean;
   is_suspended: boolean;
+  last_name_change?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -80,6 +81,7 @@ export interface PublicProfile {
   phone?: string | null;
   phone_privacy: PhonePrivacy;
   email?: string | null;
+  last_name_change?: string | null;
 }
 
 export interface Group {
@@ -143,6 +145,9 @@ export interface Message {
   message_type: MessageType;
   is_read?: boolean;
   is_deleted?: boolean;
+  is_forwarded?: boolean;
+  deleted_for_all?: boolean;
+  deleted_for_user_ids?: string[];
   created_at: string;
   sender?: PublicProfile;
   attachments?: MessageAttachment[];

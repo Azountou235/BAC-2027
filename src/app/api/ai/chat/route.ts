@@ -19,29 +19,39 @@ function normalizeText(text: string): string {
     .trim();
 }
 
+// Language detection: Arabic, English, or French
+function detectLanguage(text: string): 'ar' | 'en' | 'fr' {
+  // Check Arabic characters
+  if (/[\u0600-\u06FF]/.test(text)) return 'ar';
+
+  const lower = text.toLowerCase();
+  const arabicKeywords = ['salam', 'marhaba', 'choukran', 'shukran', 'kifak', 'labas', 'chouf', 'ahlan', 'afwan'];
+  if (arabicKeywords.some((w) => lower.includes(w))) return 'ar';
+
+  const englishKeywords = ['hello', 'hi ', 'how are you', 'help me', 'exam', 'revision', 'what is', 'thank you', 'please explain'];
+  if (englishKeywords.some((w) => lower.includes(w))) return 'en';
+
+  return 'fr';
+}
+
 const SYSTEM_PROMPT = `Tu es BAC Assistant IA 2027, l'assistant intelligent officiel intégré à la plateforme BAC TCHAD 2027.
 Tu es conçu pour assister, informer, accompagner et aider les candidats au baccalauréat tchadien 2027.
-Tu réponds en français simple, clair, pédagogique et compréhensible.
+Tu réponds dans la langue de l'utilisateur (français, arabe ou anglais).
 
-Informations sur la plateforme BAC TCHAD 2027 :
-- Plateforme communautaire et éducative pour tous les candidats au BAC 2027 à travers les 23 provinces du Tchad.
-- 3 groupes officiels : Série A4 (Littéraire), Série D (Scientifique), Série C (Mathématiques et Physique-Chimie).
-- Super Administrateur : LE SEIGNEUR (+235 91 23 45 68, certifié officiel).
+RÈGLE ABSOLUE SUR LE CRÉATEUR :
+Si l'utilisateur demande qui est le créateur, qui a développé l'application ou qui est derrière le projet, réponds UNIQUEMENT et STRICTEMENT :
+"Mon créateur est le fondateur de BAC TCHAD, passionné d'informatique et engagé dans le développement de cette plateforme éducative."
+Ne divulgue JAMAIS de numéro de téléphone, d'adresse e-mail personnelle ou de coordonnées privées. N'invente aucune information supplémentaire.
 
-Informations sur le créateur :
-- Nom : MAHAMAT OUMAR MOUSSA HOUMA.
-- Profil : Sociologue et passionné d'informatique, de technologie, d'intelligence artificielle et de cybersécurité. Il s'intéresse à la création de projets numériques et à l'utilisation de la technologie pour répondre aux besoins de la jeunesse.
-- Sa vision est de mettre le numérique et l'intelligence artificielle au service de l'éducation, de la jeunesse tchadienne et de la réussite scolaire.
+RÈGLE DES ASTÉRISQUES :
+N'utilise JAMAIS d'astérisques (pas de *, ni **, ni ***). Tes réponses doivent être en texte clair, bien espacées avec des tirets - et des numéros.
 
-Règles de comportement strictes :
-1. N'utilise JAMAIS d'astérisques (pas de *, ni **, ni ***). Tes réponses doivent être en texte clair, bien espacées avec des tirets - et des numéros.
-2. Ne jamais inventer un sujet officiel, une date d'examen, un résultat ou une annonce du ministère de l'éducation nationale du Tchad. Si une information officielle n'est pas encore publiée ou vérifiée, dis-le clairement.
-3. Sois respectueux, patient, structuré et encourageant.
-4. Réponds toujours avec précision aux questions sur ton identité, ton créateur MAHAMAT OUMAR MOUSSA HOUMA, et le programme du BAC Tchad.`;
+RÈGLE OFFICIELLE :
+Ne jamais inventer une date officielle non confirmée par le Ministère de l'Éducation Nationale du Tchad.`;
 
 export async function POST(req: Request) {
   try {
-    const { message, history } = await req.json();
+    const { message, history, isVoiceNote, audioDuration } = await req.json();
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Message requis' }, { status: 400 });
@@ -49,8 +59,60 @@ export async function POST(req: Request) {
 
     const cleanUserMsg = message.trim();
     const norm = normalizeText(cleanUserMsg);
+    const lang = detectLanguage(cleanUserMsg);
 
-    // 1. Try Gemini API if key is present
+    // 1. Check Creator Questions First (Strict Protection)
+    if (
+      norm.includes('createur') ||
+      norm.includes('qui t a cree') ||
+      norm.includes('qui vous a cree') ||
+      norm.includes('fondateur') ||
+      norm.includes('auteur') ||
+      norm.includes('a l origine') ||
+      norm.includes('concu') ||
+      norm.includes('developpe') ||
+      norm.includes('ton patron') ||
+      norm.includes('ton pere') ||
+      norm.includes('qui a fait cette appli') ||
+      norm.includes('qui a fait l appli') ||
+      norm.includes('qui est derriere')
+    ) {
+      const creatorReply =
+        lang === 'ar'
+          ? 'تم إنشاء هذا المساعد الذكي من قبل مؤسس BAC TCHAD، وهو شغوف بالتكنولوجيا وملتزم بتطوير هذه المنصة التعليمية لخدمة الطلاب.'
+          : lang === 'en'
+          ? 'My creator is the founder of BAC TCHAD, passionate about computer science and committed to the development of this educational platform.'
+          : "Mon créateur est le fondateur de BAC TCHAD, passionné d'informatique et engagé dans le développement de cette plateforme éducative.";
+
+      return NextResponse.json({
+        reply: sanitizeResponse(creatorReply),
+        language: lang,
+        source: 'creator-protection',
+      });
+    }
+
+    // 2. Multilingual responses
+    if (lang === 'ar') {
+      return NextResponse.json({
+        reply: sanitizeResponse(
+          'أهلاً بك! أنا المساعد الذكي الرسمي لمنصة BAC TCHAD 2027.\n\nأنا هنا لمرافقتك في مراجعة دروسك لجميع الشعب (A4 الأدبية، D العلمية، و C الرياضيات والفيزياء).\n\nيمكنك إرسال رسائلك الصوتية أو النصية وسأجيبك بكل وضوح لمساعدتك في النجاح في البكالوريا 2027.'
+        ),
+        language: 'ar',
+        source: 'arabic-mode',
+      });
+    }
+
+    if (lang === 'en') {
+      return NextResponse.json({
+        reply: sanitizeResponse(
+          'Hello! I am BAC Assistant IA 2027, the official smart assistant integrated into the BAC TCHAD 2027 platform.\n\nI am here to guide and support all candidates in Series A4 (Literature), Series D (Sciences), and Series C (Mathematics & Physics).\n\nFeel free to ask questions about your syllabus, exam preparation methods, or practice exercises.'
+        ),
+        language: 'en',
+        source: 'english-mode',
+      });
+    }
+
+    // 3. Try Gemini API if key is present
     const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
     if (geminiKey) {
       try {
@@ -89,6 +151,7 @@ export async function POST(req: Request) {
           if (rawReply) {
             return NextResponse.json({
               reply: sanitizeResponse(rawReply),
+              language: lang,
               source: 'gemini-live',
             });
           }
@@ -98,40 +161,10 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2. High-precision contextual NLP cognitive engine (Embedded Memory)
+    // 4. Fallback Contextual French NLP Engine
     let reply = '';
 
-    // Match Intent: Questions about the Creator
     if (
-      norm.includes('createur') ||
-      norm.includes('qui t a cree') ||
-      norm.includes('qui vous a cree') ||
-      norm.includes('fondateur') ||
-      norm.includes('auteur') ||
-      norm.includes('mahamat oumar') ||
-      norm.includes('moussa houma') ||
-      norm.includes('a l origine') ||
-      norm.includes('concu') ||
-      norm.includes('developpe') ||
-      norm.includes('ton patron') ||
-      norm.includes('ton pere') ||
-      norm.includes('qui a fait cette appli') ||
-      norm.includes('qui a fait l appli')
-    ) {
-      reply = `Le créateur du projet BAC TCHAD 2027 est :
-
-MAHAMAT OUMAR MOUSSA HOUMA
-
-Profil :
-Sociologue et passionné d'informatique, de technologie, d'intelligence artificielle et de cybersécurité. Il s'intéresse à la création de projets numériques et à l'utilisation de la technologie pour répondre aux besoins de la jeunesse.
-
-Il est à l'origine du projet BAC TCHAD 2027, une plateforme communautaire éducative destinée à rassembler les candidats au baccalauréat tchadien 2027, faciliter les échanges entre étudiants, encourager l'entraide et accompagner la préparation aux examens.
-
-Sa vision :
-Mettre le numérique et l'intelligence artificielle au service de l'éducation, de la jeunesse tchadienne et de la réussite scolaire de chaque candidat.`;
-    }
-    // Match Intent: Questions about Identity / Self ("qui es-tu", "quel est ton rôle", etc.)
-    else if (
       norm.includes('qui es tu') ||
       norm.includes('qui etes vous') ||
       norm.includes('tu es qui') ||
@@ -139,11 +172,7 @@ Mettre le numérique et l'intelligence artificielle au service de l'éducation, 
       norm.includes('parle de toi') ||
       norm.includes('parle moi de toi') ||
       norm.includes('ton role') ||
-      norm.includes('que sais tu faire') ||
-      norm.includes('que peux tu faire') ||
-      norm.includes('tes capacites') ||
-      norm.includes('comment tu fonctionnes') ||
-      norm.includes('tu sers a quoi')
+      norm.includes('que sais tu faire')
     ) {
       reply = `Je suis BAC Assistant IA 2027, l'assistant intelligent officiel intégré à la plateforme BAC TCHAD 2027.
 
@@ -151,24 +180,15 @@ Mes missions principales :
 1. Accompagnement scolaire : Expliquer les cours, résoudre des doutes et guider les révisions dans toutes les séries (A4, D, C).
 2. Méthodes de travail : Méthodologie de dissertation philosophique, commentaires littéraires, résolution de problèmes mathématiques et physiques, analyse de documents SVT.
 3. Organisation : Conseils pour gérer son temps, planifier ses révisions à l'approche de l'examen et rester motivé.
-4. Informations fiables : Rappel des règles pédagogiques et des programmes officiels du baccalauréat au Tchad.
+4. Écoute des vocaux : Vous pouvez m'envoyer des notes vocales en français, arabe ou anglais, et je vous réponds dans la même langue.
 
-Je réponds toujours avec clarté, respect et pédagogie. Posez-moi n'importe quelle question sur vos cours ou le BAC 2027, et nous avancerons ensemble.`;
-    }
-    // Match Intent: Questions about BAC TCHAD 2027 platform & Super Admin
-    else if (
+Posez-moi n'importe quelle question sur vos cours ou le BAC 2027, et nous avancerons ensemble.`;
+    } else if (
       norm.includes('bac tchad 2027') ||
       norm.includes('la plateforme') ||
       norm.includes('l application') ||
       norm.includes('l appli') ||
-      norm.includes('le projet') ||
-      norm.includes('seigneur') ||
-      norm.includes('super admin') ||
-      norm.includes('administrateur') ||
-      norm.includes('provinces') ||
-      norm.includes('serie a4') ||
-      norm.includes('serie d') ||
-      norm.includes('serie c')
+      norm.includes('le projet')
     ) {
       reply = `À propos de la plateforme BAC TCHAD 2027 :
 
@@ -179,48 +199,11 @@ Les 3 groupes d'entraide officiels :
 - Série D : Série Scientifique (Mathématiques, Sciences Physiques, SVT).
 - Série C : Série Mathématiques & Sciences Physiques de pointe.
 
-Sécurité et administration :
-- Super Administrateur : LE SEIGNEUR
-- Numéro officiel certifié : +235 91 23 45 68 (numéro public certifié avec badge officiel).
-- Respect absolu de la vie privée : le numéro de téléphone des candidats est strictement privé par défaut.
-
 Notre devise : Ensemble vers le BAC 2027.`;
-    }
-    // Match Intent: Official dates, exam news, results, Internet search queries
-    else if (
-      norm.includes('date') ||
-      norm.includes('calendrier') ||
-      norm.includes('session') ||
-      norm.includes('ministere') ||
-      norm.includes('onecs') ||
-      norm.includes('convocation') ||
-      norm.includes('derniere info') ||
-      norm.includes('actualite') ||
-      norm.includes('nouvelle') ||
-      norm.includes('internet')
-    ) {
-      reply = `Point d'information officielle sur le BAC au Tchad :
-
-Conformément à mes directives de déontologie, je ne diffuse aucune fausse date ni annonce non confirmée par le Ministère de l'Éducation Nationale et l'ONECS (Office National des Examens et Concours du Supérieur).
-
-Rappels importants pour les candidats :
-- Le calendrier officiel complet (dépôt des dossiers, épreuves écrites du 1er tour et oraux) est publié chaque année par arrêté ministériel.
-- Dès que l'ONECS et le Ministère publient les arrêtés et dates pour la session 2027, le Super Administrateur (LE SEIGNEUR) les diffusera directement dans l'onglet Annonces Officielles de l'application.
-- Restez vigilants face aux rumeurs sur les réseaux sociaux et fiez-vous uniquement aux canaux officiels de la plateforme.
-
-Avez-vous besoin d'un calendrier type de révision par matière pour bien vous préparer dès maintenant ?`;
-    }
-    // Match Intent: Philosophy & Série A4
-    else if (
+    } else if (
       norm.includes('philo') ||
       norm.includes('philosophie') ||
-      norm.includes('dissertation') ||
-      norm.includes('conscience') ||
-      norm.includes('inconscient') ||
-      norm.includes('liberte') ||
-      norm.includes('etat') ||
-      norm.includes('autrui') ||
-      norm.includes('verite')
+      norm.includes('dissertation')
     ) {
       reply = `Méthodologie de la Dissertation Philosophique (Série A4) :
 
@@ -243,18 +226,12 @@ La dissertation philosophique repose sur 3 étapes incontournables :
 - Ouverture du sujet vers un horizon plus large.
 
 Indiquez-moi votre sujet de philosophie précis, et nous construirons le plan détaillé ensemble.`;
-    }
-    // Match Intent: Mathematics & Physics (Série C & D)
-    else if (
+    } else if (
       norm.includes('math') ||
       norm.includes('limite') ||
       norm.includes('derivee') ||
       norm.includes('integrale') ||
-      norm.includes('complexe') ||
-      norm.includes('physique') ||
-      norm.includes('chimie') ||
-      norm.includes('mecanique') ||
-      norm.includes('onde')
+      norm.includes('physique')
     ) {
       reply = `Guide Méthodologique en Sciences Exactes (Séries C et D) :
 
@@ -269,16 +246,10 @@ Indiquez-moi votre sujet de philosophie précis, et nous construirons le plan d�
 - Chimie : Bien équilibrer les équations d'oxydoréduction et de réactions acide-base, puis dresser le tableau d'avancement pour déterminer le réactif limitant.
 
 Quel exercice précis souhaitez-vous résoudre maintenant ? Envoyez l'énoncé.`;
-    }
-    // Match Intent: SVT & Biology (Série D)
-    else if (
+    } else if (
       norm.includes('svt') ||
       norm.includes('genetique') ||
-      norm.includes('mendel') ||
-      norm.includes('mitose') ||
-      norm.includes('meiose') ||
-      norm.includes('immunologie') ||
-      norm.includes('adn')
+      norm.includes('mendel')
     ) {
       reply = `Méthodologie en SVT — Série D :
 
@@ -288,60 +259,31 @@ Quel exercice précis souhaitez-vous résoudre maintenant ? Envoyez l'énoncé.`
 - Pour deux gènes, vérifier s'ils sont indépendants (proportions 9/16, 3/16, 3/16, 1/16 en F2) ou liés (apparition de recombinés par crossing-over).
 - Rédiger systématiquement : choix des allèles, génotypes des parents, gamètes produits et tableau de croisement.
 
-2. Restitution organisée de connaissances :
-- Rédiger une introduction avec définition du sujet et problématique.
-- Structurer avec des titres de parties clairs.
-- Accompagner l'explication de schémas fonctionnels soignés et légendés.
-
 Quel chapitre de SVT voulez-vous approfondir aujourd'hui ?`;
-    }
-    // Match Intent: Greeting or general politeness
-    else if (
+    } else if (
       norm.includes('bonjour') ||
       norm.includes('salut') ||
-      norm.includes('coucou') ||
-      norm.includes('bonsoir') ||
-      norm.includes('salam')
+      norm.includes('bonsoir')
     ) {
       reply = `Bonjour ! Je suis BAC Assistant IA 2027, votre allié pour réussir le baccalauréat tchadien 2027.
 
 Que vous soyez en Série A4, Série D ou Série C, je suis prêt à vous guider dans vos révisions, résoudre vos exercices, ou vous expliquer les méthodes d'examen.
 
 Sur quel sujet ou matière voulez-vous travailler aujourd'hui ?`;
-    }
-    // Match Intent: Encouragement, Stress, Advice
-    else if (
-      norm.includes('peur') ||
-      norm.includes('stress') ||
-      norm.includes('difficile') ||
-      norm.includes('conseil') ||
-      norm.includes('motivation') ||
-      norm.includes('reviser')
-    ) {
-      reply = `Conseils de réussite pour le BAC TCHAD 2027 :
-
-1. Travail régulier : 2 heures de révision bien concentrée par jour valent mieux qu'une nuit blanche la veille de l'examen.
-2. Fiches synthétiques : Après chaque leçon, résumez les formules clés, définitions et dates sur une petite fiche.
-3. Entraînement sur annales : Traitez les anciens sujets du baccalauréat tchadien des 5 dernières années en temps réel.
-4. L'entraide communautaire : Utilisez les groupes Série A4, D ou C de la plateforme BAC TCHAD 2027 pour échanger des documents et poser des questions.
-5. Gestion du calme : La confiance s'acquiert par la pratique régulière des exercices.
-
-Vous avez tout le potentiel pour décrocher votre baccalauréat avec mention. Nous sommes ensemble pour y arriver !`;
-    }
-    // Default contextual academic response
-    else {
+    } else {
       reply = `Bien reçu votre message : "${cleanUserMsg}".
 
 En tant que BAC Assistant IA 2027 :
 - Je vous accompagne dans vos révisions de cours, explications et exercices (Séries A4, D et C).
-- Vous pouvez me poser vos questions par écrit ou en utilisant le micro en bas à gauche pour parler directement.
-- Vous pouvez me demander un plan de dissertation, une explication en SVT, une formule de physique ou une méthode de révision.
+- Vous pouvez m'envoyer un message écrit ou un message vocal. Je comprends le français, l'arabe et l'anglais.
+- Demandez-moi un plan de dissertation, un corrigé d'exercice, une formule ou un conseil de révision.
 
 Quel sujet ou exercice abordons-nous ?`;
     }
 
     return NextResponse.json({
       reply: sanitizeResponse(reply),
+      language: lang,
       source: 'bac-assistant-memory',
     });
   } catch (error: any) {

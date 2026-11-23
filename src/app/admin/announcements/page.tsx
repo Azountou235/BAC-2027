@@ -17,8 +17,8 @@ export default function AdminAnnouncementsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  if (!currentUser?.is_super_admin) {
-    return <div className="p-6 text-center text-white">Accès restreint.</div>;
+  if (currentUser?.email?.trim().toLowerCase() !== 'leseigneur235@gmail.com') {
+    return <div className="p-6 text-center text-white">Accès strictement réservé à Leseigneur235@gmail.com.</div>;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

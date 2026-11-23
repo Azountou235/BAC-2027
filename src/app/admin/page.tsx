@@ -31,8 +31,10 @@ export default function AdminDashboardPage() {
     adminLogs,
   } = useApp();
 
-  // Security check: Only Super Admin can access
-  if (!currentUser?.is_super_admin) {
+  // Strict Security check: Only Leseigneur235@gmail.com can access Super Admin
+  const isAuthorized = currentUser?.email?.trim().toLowerCase() === 'leseigneur235@gmail.com';
+
+  if (!isAuthorized) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center text-slate-100">
         <div className="w-16 h-16 rounded-3xl bg-red-950/60 border border-red-800/60 flex items-center justify-center text-red-400 mb-4">
@@ -40,11 +42,11 @@ export default function AdminDashboardPage() {
         </div>
         <h1 className="text-xl font-bold text-white mb-2">Accès Super Admin Restreint</h1>
         <p className="text-xs text-slate-400 max-w-sm mb-6 leading-relaxed">
-          Cette zone est strictement réservée à l'administrateur officiel désigné de la plateforme BAC TCHAD 2027.
+          Cette zone d'administration est strictement réservée au compte officiel <strong>Leseigneur235@gmail.com</strong>.
         </p>
         <Link
-          href="/app"
-          className="px-5 py-2.5 bg-slate-900 border border-slate-800 text-teal-400 rounded-xl text-xs font-semibold"
+          href="/app/chats"
+          className="px-5 py-2.5 bg-slate-900 border border-slate-800 text-[#00a884] rounded-xl text-xs font-semibold"
         >
           Retour à l'application
         </Link>

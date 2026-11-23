@@ -11,8 +11,8 @@ export default function AdminGroupsPage() {
   const router = useRouter();
   const { currentUser, groups, adminToggleGroupLock } = useApp();
 
-  if (!currentUser?.is_super_admin) {
-    return <div className="p-6 text-center text-white">Accès réservé.</div>;
+  if (currentUser?.email?.trim().toLowerCase() !== 'leseigneur235@gmail.com') {
+    return <div className="p-6 text-center text-white">Accès strictement réservé à Leseigneur235@gmail.com.</div>;
   }
 
   return (

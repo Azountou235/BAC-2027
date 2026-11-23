@@ -11,8 +11,8 @@ export default function AdminReportsPage() {
   const { currentUser, reports, adminResolveReport, adminSuspendUser } = useApp();
   const [filter, setFilter] = useState<'all' | 'pending' | 'resolved'>('all');
 
-  if (!currentUser?.is_super_admin) {
-    return <div className="p-6 text-center text-white">Accès restreint.</div>;
+  if (currentUser?.email?.trim().toLowerCase() !== 'leseigneur235@gmail.com') {
+    return <div className="p-6 text-center text-white">Accès strictement réservé à Leseigneur235@gmail.com.</div>;
   }
 
   // Demonstration data if empty
