@@ -1,14 +1,15 @@
 {
   "name": "BAC TCHAD 2027",
-  "short_name": "BAC TCHAD",
-  "description": "Plateforme communautaire et messagerie pour les candidats au Baccalauréat Tchadien 2027. Ensemble vers le BAC 2027.",
-  "start_url": "/app",
+  "short_name": "BAC 2027",
+  "description": "Plateforme communautaire officielle pour les candidats au Baccalauréat Tchadien 2027.",
+  "id": "/",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0b0f19",
-  "theme_color": "#0d9488",
-  "orientation": "portrait-primary",
-  "categories": ["education", "social", "productivity"],
+  "background_color": "#0b141a",
+  "theme_color": "#0b141a",
+  "orientation": "portrait",
+  "categories": ["education", "social"],
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -27,36 +28,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Groupe Série A4",
-      "short_name": "Série A4",
-      "description": "Accéder directement au groupe BAC Série A4",
-      "url": "/app/groups/a4",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Groupe Série D",
-      "short_name": "Série D",
-      "description": "Accéder directement au groupe BAC Série D",
-      "url": "/app/groups/d",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Groupe Série C",
-      "short_name": "Série C",
-      "description": "Accéder directement au groupe BAC Série C",
-      "url": "/app/groups/c",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Discussions privées",
-      "short_name": "Chats",
-      "description": "Vos discussions privées et demandes",
-      "url": "/app/chats",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+      "src": "/icons/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }

@@ -1,24 +1,31 @@
-const CACHE_NAME = 'bac-tchad-2027-v1';
-const STATIC_ASSETS = [
+const CACHE_NAME = 'bac-2027-v2';
+const STATIC_SHELL = [
   '/',
-  '/offline.html',
+  '/auth',
+  '/signup',
+  '/app/chats',
+  '/app/groups/a4',
+  '/app/groups/d',
+  '/app/groups/c',
+  '/app/chats/ai',
+  '/app/settings',
   '/manifest.webmanifest',
-  '/favicon.ico',
+  '/icons/logo.png',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png'
 ];
 
-// Install Event
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
+      return cache.addAll(STATIC_SHELL).catch((err) => {
+        console.warn('Pré-mise en cache SW partielle:', err);
+      });
     })
   );
   self.skipWaiting();
 });
 
-// Activate Event
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -34,96 +41,76 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch Strategy: Network-first with cache fallback
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // Avoid caching Supabase API or Websocket endpoints in SW
+  // Do not intercept live Supabase calls
   if (url.hostname.includes('supabase.co')) {
     return;
   }
 
+  // Network first with cache fallback
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
-          const responseToCache = networkResponse.clone();
+          const cloned = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            // Cache static assets and pages
             if (url.origin === location.origin) {
-              cache.put(event.request, responseToCache);
+              cache.put(event.request, cloned);
             }
           });
         }
         return networkResponse;
       })
       .catch(() => {
-        // Fallback to cache
         return caches.match(event.request).then((cachedResponse) => {
           if (cachedResponse) {
             return cachedResponse;
           }
-          // If HTML request failed and nothing in cache, show offline page
+          // If HTML page failed, return root shell
           if (event.request.headers.get('accept')?.includes('text/html')) {
-            return caches.match('/offline.html');
+            return caches.match('/');
           }
         });
       })
   );
 });
 
-// Web Push Notifications
 self.addEventListener('push', (event) => {
-  let data = { title: 'BAC TCHAD 2027', body: 'Nouveau message reçu.', url: '/app' };
+  let payload = { title: 'BAC 2027', body: 'Nouveau message reçu.' };
   try {
     if (event.data) {
-      data = event.data.json();
+      payload = event.data.json();
     }
   } catch (e) {
-    if (event.data) {
-      data.body = event.data.text();
-    }
+    if (event.data) payload.body = event.data.text();
   }
 
   const options = {
-    body: data.body,
+    body: payload.body,
     icon: '/icons/icon-192x192.png',
     badge: '/icons/icon-192x192.png',
     vibrate: [100, 50, 100],
-    data: {
-      url: data.url || '/app'
-    },
-    actions: [
-      { action: 'open', title: 'Ouvrir' },
-      { action: 'close', title: 'Ignorer' }
-    ]
+    data: { url: '/app/chats' }
   };
 
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
-  );
+  event.waitUntil(self.registration.showNotification(payload.title, options));
 });
 
-// Notification Click Event
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  if (event.action === 'close') return;
-
-  const targetUrl = event.notification.data?.url || '/app';
-
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      for (let client of windowClients) {
-        if (client.url.includes(location.origin) && 'focus' in client) {
-          client.navigate(targetUrl);
+    clients.matchAll({ type: 'window' }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes('/app') && 'focus' in client) {
           return client.focus();
         }
       }
       if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
+        return clients.openWindow('/app/chats');
       }
     })
   );

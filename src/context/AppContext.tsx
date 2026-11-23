@@ -342,79 +342,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ],
       });
 
-      // Sample private WhatsApp-like chats
-      setPrivateConversations([
-        {
-          id: 'conv_1',
-          other_user: {
-            id: 'usr_fatime',
-            full_name: 'Fatimé Ahmat (Ouaddaï)',
-            province: 'Ouaddaï',
-            series: 'D',
-            is_super_admin: false,
-            is_suspended: false,
-            phone_privacy: 'private',
-            created_at: now.toISOString(),
-          },
-          last_message: {
-            id: 'm_last_1',
-            sender_id: 'usr_fatime',
-            content: 'Merci pour le sujet de physique ! Je vais réviser ce soir.',
-            message_type: 'text',
-            created_at: new Date(now.getTime() - 600000).toISOString(),
-          },
-          unread_count: 2,
-          created_at: now.toISOString(),
-          updated_at: new Date(now.getTime() - 600000).toISOString(),
-        },
-        {
-          id: 'conv_2',
-          other_user: {
-            id: 'usr_eric',
-            full_name: 'Eric Nodjimadji (Moundou)',
-            province: 'Logone Occidental',
-            series: 'C',
-            is_super_admin: false,
-            is_suspended: false,
-            phone_privacy: 'public',
-            phone: '+235 66 12 34 56',
-            created_at: now.toISOString(),
-          },
-          last_message: {
-            id: 'm_last_2',
-            sender_id: 'usr_eric',
-            content: 'Note vocale (0:24)',
-            message_type: 'audio',
-            created_at: new Date(now.getTime() - 1800000).toISOString(),
-          },
-          unread_count: 1,
-          created_at: now.toISOString(),
-          updated_at: new Date(now.getTime() - 1800000).toISOString(),
-        },
-        {
-          id: 'conv_3',
-          other_user: {
-            id: 'usr_brahim',
-            full_name: 'Brahim Allamine (Abéché)',
-            province: 'Ouaddaï',
-            series: 'A4',
-            is_super_admin: false,
-            is_suspended: false,
-            phone_privacy: 'private',
-            created_at: now.toISOString(),
-          },
-          last_message: {
-            id: 'm_last_3',
-            sender_id: 'seigneur_super_admin',
-            content: 'Tu as compris le corrigé de la dissertation ?',
-            message_type: 'text',
-            created_at: new Date(now.getTime() - 86400000).toISOString(),
-          },
-          unread_count: 0,
-          created_at: now.toISOString(),
-          updated_at: new Date(now.getTime() - 86400000).toISOString(),
-        },
-      ]);
+      // Real private chats only (no fake mock users)
+      const savedConvs = localStorage.getItem('bac_tchad_real_conversations');
+      const loadedConvs: PrivateConversation[] = savedConvs ? JSON.parse(savedConvs) : [];
+      setPrivateConversations(loadedConvs);
 
       setAnnouncements([
         {
@@ -594,7 +525,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('bac_tchad_deleted_chats', JSON.stringify(updated));
       return updated;
     });
-    setPrivateConversations((prev) => prev.filter((c) => c.id !== chatId));
+    setPrivateConversations((prev) => {
+      const filtered = prev.filter((c) => c.id !== chatId);
+      localStorage.setItem('bac_tchad_real_conversations', JSON.stringify(filtered));
+      return filtered;
+    });
   };
 
   const toggleArchiveChat = (chatId: string) => {

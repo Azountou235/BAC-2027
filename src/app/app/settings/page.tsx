@@ -25,6 +25,9 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { CHAD_PROVINCES, Province, Series, PhonePrivacy } from '@/types';
+import { PhotoCropModal } from '@/components/PhotoCropModal';
+import { FullScreenImageViewer } from '@/components/FullScreenImageViewer';
+import { RedVerifiedBadge } from '@/components/RedVerifiedBadge';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -49,6 +52,10 @@ export default function SettingsPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+  // Crop & Fullscreen Viewer state
+  const [rawImageForCrop, setRawImageForCrop] = useState<string | null>(null);
+  const [showFullScreenAvatar, setShowFullScreenAvatar] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -70,20 +77,27 @@ export default function SettingsPage() {
 
   const nameEligibility = checkNameChangeEligibility();
 
-  // Photo handlers
+  // Photo handlers: Open WhatsApp-style crop modal
   const handlePhotoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const reader = new FileReader();
-      reader.onload = async () => {
+      reader.onload = () => {
         const result = reader.result as string;
-        setAvatarPreview(result);
-        await updateUserProfile({ avatar_url: result });
-        setSavedSuccess(true);
-        setTimeout(() => setSavedSuccess(false), 2500);
+        setRawImageForCrop(result);
       };
       reader.readAsDataURL(file);
+      // Reset input value so user can pick same file again if desired
+      e.target.value = '';
     }
+  };
+
+  const handleCropComplete = async (croppedBase64: string) => {
+    setAvatarPreview(croppedBase64);
+    setRawImageForCrop(null);
+    await updateUserProfile({ avatar_url: croppedBase64 });
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 2500);
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -158,7 +172,13 @@ export default function SettingsPage() {
 
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <div className="relative">
-              <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-800 border-2 border-[#00a884]/40 flex items-center justify-center shadow-lg">
+              <div 
+                onClick={() => avatarPreview && setShowFullScreenAvatar(true)}
+                className={`w-20 h-20 rounded-full overflow-hidden bg-slate-800 border-2 border-[#00a884]/40 flex items-center justify-center shadow-lg ${
+                  avatarPreview ? 'cursor-pointer hover:opacity-90 active:scale-95 transition-all' : ''
+                }`}
+                title={avatarPreview ? 'Cliquer pour voir la photo en entier' : ''}
+              >
                 {avatarPreview ? (
                   <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
@@ -513,6 +533,24 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* WhatsApp Style Photo Crop Modal */}
+      {rawImageForCrop && (
+        <PhotoCropModal
+          imageSrc={rawImageForCrop}
+          onCropComplete={handleCropComplete}
+          onCancel={() => setRawImageForCrop(null)}
+        />
+      )}
+
+      {/* Fullscreen Photo Viewer */}
+      <FullScreenImageViewer
+        isOpen={showFullScreenAvatar}
+        imageUrl={avatarPreview}
+        title={fullName || currentUser?.full_name || 'Photo de profil'}
+        subtitle="Votre photo de profil"
+        onClose={() => setShowFullScreenAvatar(false)}
+      />
 
       <BottomNav />
     </div>
